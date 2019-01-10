@@ -1,0 +1,158 @@
+---
+title: "A-2018-11-2"
+author: "By 18038"
+date: "2018年10月26日"
+output: html_document
+---
+
+## Question 1:
+Compute a jackknife estimate of the bias and the standard error of the correlation statistic in Example 7.2.
+
+## Answer
+
+```{r}
+library(bootstrap)
+n <- nrow(law)
+LSAT <- law$LSAT
+GPA <- law$GPA
+theta.hat <- cor(LSAT, GPA)
+
+# compute the jackknife replictes,leave-one-out estimates
+theta.jack <- numeric(n)
+for(i in 1:n)
+  theta.jack[i] <- cor(LSAT[-i], GPA[-i]) 
+bias <- (n-1) * (mean(theta.jack) - theta.hat)   #jackknife estimate of bias
+se <- sqrt((n-1) * mean((theta.jack- mean(theta.jack))^2))   #jackknife estimate of standard eror
+  print(round(c(bias, se), 5)) 
+```
+
+Analysis: Jackknife estimate of the bias and the standard error are -0.00647 and 0.14252 respectively.
+
+## Question 2:
+Refer to Exercise 7.4. Compute 95% bootstrap confidence intervals for the mean time between failures $\frac{1}{\lambda}$ by the standard normal, basic, percentile, and BCa methods. Compare the intervals and explain why they may differ.
+
+## Answer
+
+the code for standard normal, basic, percentile and BCa confidence interval
+```{r}
+library(boot)  # for boot and boot.ci
+  data("aircondit", package = "boot")
+
+    # make the set of aircondit a vector
+  aircondit <- unlist(aircondit)
+  aircondit <- as.vector(aircondit)
+  lambda <- mean(aircondit)
+  
+  lambda.boot <- function(x,i)
+  {
+    # function to compute the statistic
+    mean(x[i])
+  }
+  x <- aircondit
+boot.obj <- boot(x, statistic = lambda.boot, R = 2000 )
+print(boot.ci(boot.obj, type = c("norm", "basic", "perc","bca"))) 
+```
+
+Analysis: From the results, we can see the BCa interval is more credible, because it is transformation respecting and second order accurate , the percentile interval is transformation respecting but only first order accurate. The standard normal confidence interval is neither transformation respecting nor second order accurate.
+
+## Question 3:
+Refer to Exercise 7.7. Obtain the jackknife estimates of bias and standard error of$\hat{\theta}$
+
+## Answer
+
+If $X$ is the matrix of scor(bootstrap), then the estimate of $X$ of the covariance matrix $\Sigma$ is $$\hat\Sigma = \frac{(X-\bar{X})^T (X-\bar{X})}{n} $$  where $n$ is the number of rows in the matrix $X$
+
+```{r}
+data(scor, package = "bootstrap")
+
+# turn scor into a matrix x
+names(scor) <- NULL
+x <- as.matrix(scor)
+
+n <- nrow(x)
+m <- ncol(x)
+x.bar <- numeric(m)
+
+#compute the theta
+theta <- function(cov)
+{
+  eigen.cov <- eigen(cov)   
+  eigen.v <- sort(eigen.cov$values, decreasing = TRUE)
+  eigen.v[1]/sum(eigen.v)
+}
+
+# compute the MLE of covariance matrix
+cov.hat <- function(j)
+{
+  x.bar <- colMeans(j)
+  I <- matrix(rep(1, nrow(j)), nrow = nrow(j), ncol = 1)
+  x.bar <- I %*% x.bar
+  crossprod(j - x.bar, j - x.bar)/nrow(j)
+}
+theta.hat <- theta(cov.hat(x))
+
+#  the jackknife estimates of bias and standard error 
+cov.jack <- matrix(0, nrow = m, ncol = m)
+theta.jack <- numeric(n)
+for(i in 1:n)
+{
+  cov.jack <- cov.hat(x[-i, ])
+  theta.jack[i] <- theta(cov.jack)
+}
+
+bias <- (n-1) * (mean(theta.jack) - theta.hat)   #jackknife estimate of bias
+se <- sqrt((n-1) * mean((theta.jack- mean(theta.jack))^2))   #jackknife estimate of standard eror
+print(round(c(bias, se), 5)) 
+
+```
+Analysis : the bias and standard error are very small, we can belief the estimate is right.
+
+## Question 4:
+In Example 7.18, leave-one-out (n-fold) cross validation was used to select the best fitting model. Use leave-two-out cross validation to compare the models.
+
+## Answer
+
+```{r}
+library(lattice)
+library(DAAG)
+attach(ironslag)
+
+n <- length(magnetic) 
+
+# the function of compute the change of R-square
+shrinkage <- function(fit, k= n/2)
+{
+  require(bootstrap)
+  
+  theta.fit <- function(x,y)
+  {
+    lsfit(x,y)
+  }
+  
+  theta.predict <- function(fit,x)
+  {
+    cbind(1,x) %*% fit$coef
+  }
+  
+  x <- fit$model[,2:ncol(fit$model)]
+  y <- fit$model[,1]
+  
+  results <- crossval(x, y, theta.fit, theta.predict, ngroup = k)
+  
+  r2 <- cor(y, fit$fitted.values)^2
+  r2cv <- cor(y, results$cv.fit)^2
+  return(r2-r2cv)   # the change of R-square
+}
+
+fit1 <- lm(magnetic ~ chemical)
+
+fit2 <- lm(magnetic ~ chemical + I(chemical ^ 2))
+
+fit3 <- lm(log(magnetic) ~ chemical)
+
+fit4 <- lm(log(magnetic) ~ log(chemical))
+
+print(c(shrinkage(fit1), shrinkage(fit2), shrinkage(fit3), shrinkage(fit4)))
+```
+
+Analysis : from the results, we can see the  Model 2, the quadratic model, would be the best fit for the data, because the change of R-square is biggest.  

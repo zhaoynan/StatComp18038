@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1547120340653.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3159836073",
+    "id" : "51A665A4",
+    "lastKnownWriteTime" : 1547125860,
+    "last_content_update" : 1547126677245,
+    "path" : "C:/Users/Administrator/Desktop/StatComp18038/vignettes/intro.Rmd",
+    "project_path" : "vignettes/intro.Rmd",
+    "properties" : {
+        "cursorPosition" : "447,7",
+        "scrollLine" : "442"
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
